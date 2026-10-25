@@ -6,5 +6,5 @@ def report_accuracy(y_true, y_pred):
     print(f"Classification Report: {classification_report(y_true, y_pred)}\n")
 
     print(classification_report(y_true, y_pred))
-    print(f"Confusion Matrix: {confusion_matrix(y_true, y_pred)}\n")
+    print(f"Confusion Matrix: \n{confusion_matrix(y_true, y_pred)}\n")
 
