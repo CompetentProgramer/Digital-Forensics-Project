@@ -1,0 +1,1 @@
+The training files is from "DNS Tunneling Queries for Binary Classification" published by Mendeley Data and Yakov Bubnov. https://data.mendeley.com/datasets/mzn9hvdcxg/1
