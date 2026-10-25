@@ -16,9 +16,9 @@ def run_training():
     else:
         print("Training a new model...")
         model = train_model(X_train, y_train)
+        save_model(model, save_dir)  # Save model
 
     y_pred = predict(model, X_test)
-    save_model(model, save_dir) # Save model
     report_accuracy(y_test, y_pred)
 
 if __name__ == "__main__":
