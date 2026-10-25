@@ -8,7 +8,15 @@ save_dir = "saved_models" # Folder where the model will be stored
 save_file = "saved_model/random_forest_classifier.pkl"
 
 def run_training():
-    X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
+    X, y = make_classification(
+        n_samples=1000,
+        n_features=4,
+        n_informative=2,
+        n_redundant=0,
+        weights=[0.85,0.15],
+        random_state=42
+    )
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     if os.path.exists(save_file):
