@@ -5,7 +5,7 @@ from report import report_accuracy
 import os
 
 save_dir = "saved_models" # Folder where the model will be stored
-save_file = "saved_model/random_forest.pkl"
+save_file = "saved_model/random_forest_classifier.pkl"
 
 def run_training():
     X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
