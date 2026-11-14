@@ -16,8 +16,12 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-sys.path.insert(0, os.path.join(HERE, "..", "ML"))  #  train.py and data_loader.py
+sys.path.insert(0, os.path.join(HERE, "..", "ML"))  # teammate's train.py and data_loader.py
 
+import matplotlib  # noqa: E402
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 from compare_rf_vs_rules import load, rule_predict, score  # noqa: E402
@@ -53,6 +57,8 @@ def main():
     ap.add_argument("--palau", required=True, help="Palau CSV or CSV.GZ (columns domain,class)")
     ap.add_argument("--train", default=os.path.join(HERE, "..", "ML", "dataset", "training.csv"))
     ap.add_argument("--model", help="load this saved .joblib model instead of training (it must have been trained on --train)")
+    ap.add_argument("--plot", default=os.path.join(HERE, "..", "Metrics", "cross_dataset.png"),
+                    help="chart PNG (default: ../Metrics/cross_dataset.png)")
     ap.add_argument("--domain-col", default="domain")
     ap.add_argument("--class-col", default="class")
     ap.add_argument("--out", default=os.path.join(HERE, "..", "Metrics", "cross_dataset_metrics.csv"),
@@ -113,6 +119,46 @@ def main():
             w.writerow([name, round(m["precision"], 4), round(m["recall"], 4), round(m["f1"], 4), m["tp"],
                         m["fp"], m["fn"], m["tn"], round(fpr, 5), round(dga_rate, 4)])
     print(f"\nWrote {args.out}")
+
+    # --- Chart: grouped bars, same style as comparison.png -------------------
+    surface, ink, ink2, muted, grid = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9"
+    colors = ["#2a78d6", "#eb6834", "#1baf7a"]
+    metrics_order = [("precision", "Precision"), ("recall", "Recall"), ("f1", "F1")]
+    fig, ax = plt.subplots(figsize=(11, 5.8), facecolor=surface)
+    ax.set_facecolor(surface)
+    width = 0.26
+    xs = np.arange(len(metrics_order))
+    for i, (name, m, fpr, dga_rate) in enumerate(results):
+        vals = [m[k] for k, _ in metrics_order]
+        bars = ax.bar(xs + (i - 1) * width, vals, width=width, color=colors[i], edgecolor=surface,
+                      linewidth=2, label=f"{name}  [FP {m['fp']:,}, FN {m['fn']:,}]", zorder=3)
+        for b, v in zip(bars, vals):
+            ax.text(b.get_x() + b.get_width() / 2, v + 0.012, f"{v:.3f}", ha="center", va="bottom",
+                    fontsize=8.5, color=ink)
+    ax.set_xticks(xs)
+    ax.set_xticklabels([lbl for _, lbl in metrics_order], color=ink2, fontsize=11)
+    ax.set_ylim(0, 1.12)
+    ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+    ax.tick_params(axis="y", colors=muted, labelsize=9)
+    ax.tick_params(axis="x", length=0)
+    ax.yaxis.grid(True, color=grid, linewidth=0.8, zorder=0)
+    for sp in ("top", "right", "left"):
+        ax.spines[sp].set_visible(False)
+    ax.spines["bottom"].set_color("#c3c2b7")
+    n_norm, n_tun = int((c_te == 0).sum()), int((c_te == 2).sum())
+    ax.set_title("Cross-dataset test: trained on Bubnov, tested on Palau", loc="left", fontsize=14,
+                 color=ink, pad=34)
+    ax.text(0, 1.045, f"Scored on {n_norm:,} normal and {n_tun:,} tunneling Palau queries "
+                      "(DGA excluded). Scores are for the tunneling class; FP/FN are counts.",
+            transform=ax.transAxes, fontsize=9.5, color=ink2, va="bottom")
+    leg = ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.31), ncol=1, frameon=False, fontsize=9.5)
+    for t in leg.get_texts():
+        t.set_color(ink2)
+    fig.tight_layout()
+    os.makedirs(os.path.dirname(os.path.abspath(args.plot)), exist_ok=True)
+    fig.savefig(args.plot, dpi=160, facecolor=surface, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Wrote {args.plot}")
 
     # --- Where do the systems fail? -----------------------------------------
     base = lambda d: ".".join(d.split(".")[-2:])
