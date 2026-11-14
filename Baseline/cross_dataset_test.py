@@ -1,28 +1,7 @@
 #!/usr/bin/env python3
 """
 cross_dataset_test.py
-Train on one dataset, test on another: do the results survive a dataset made
-with different tools?
-
-  * Train: Bubnov training.csv (ML/dataset/training.csv, no header: label,domain)
-  * Test:  Palau et al. DNS Threats Dataset (columns: domain,class;
-           class 0 = normal, 1 = DGA, 2 = tunneling). .csv or .csv.gz both work.
-
-Systems (same definitions as compare_rf_vs_rules.py):
-  * Random forest (teammate's setup: 100 trees, seed 42, five features),
-    trained on Bubnov training.csv only
-  * Rule detector, default thresholds (length cutoff 50)
-  * Rule detector, length cutoff tuned on Bubnov training.csv (as before)
-
-Scoring: tunneling (class 2) is the positive class, normal (class 0) the
-negative class. DGA domains (class 1) are a different threat, so they are left
-out of precision/recall; the script reports separately how many of them each
-system flags. Palau domains that also appear in Bubnov training are removed so
-the model is never tested on a name it trained on.
-
-Because tunneling is a tiny share of this file, accuracy is nearly meaningless
-(predicting "normal" for everything scores about 99.3%). Read recall,
-precision and the false-alarm rate instead.
+Train on one dataset, test on another: do the results survive a dataset made with different tools?
 
 Run from Baseline/:
     python3 cross_dataset_test.py --palau path/to/test_combined_multiclass.csv.gz
@@ -37,10 +16,13 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-import numpy as np  # noqa: E402
-from sklearn.ensemble import RandomForestClassifier  # noqa: E402
+sys.path.insert(0, os.path.join(HERE, "..", "ML"))
 
-from compare_rf_vs_rules import RF_FEATURES, load, rule_predict, score  # noqa: E402
+import numpy as np  # noqa: E402
+
+from compare_rf_vs_rules import load, rule_predict, score  # noqa: E402
+from data_loader import features_from_domains  # noqa: E402  (ML/)
+from train import load_model, predict, train_model  # noqa: E402  (ML/)
 from dns_tunnel_detector import extract_features  # noqa: E402
 
 TWO_PART_SUFFIXES = {"co.uk", "com.br", "com.au", "co.jp", "com.tr", "com.cn", "co.in", "co.za", "com.mx",
@@ -70,6 +52,7 @@ def main():
     ap = argparse.ArgumentParser(description="Train on Bubnov, test on the Palau dataset")
     ap.add_argument("--palau", required=True, help="Palau CSV or CSV.GZ (columns domain,class)")
     ap.add_argument("--train", default=os.path.join(HERE, "..", "ML", "dataset", "training.csv"))
+    ap.add_argument("--model", help="load this saved .joblib model instead of training (it must have been trained on --train)")
     ap.add_argument("--domain-col", default="domain")
     ap.add_argument("--class-col", default="class")
     ap.add_argument("--out", default="cross_dataset_metrics.csv")
@@ -77,7 +60,6 @@ def main():
 
     d_tr, y_tr = load(args.train)
     f_tr = [extract_features(d, "A") for d in d_tr]
-    X_tr = np.array([[f[k] for k in RF_FEATURES] for f in f_tr])
 
     d_te, c_te = load_palau(args.palau, args.domain_col, args.class_col)
     seen = {norm(d) for d in d_tr}
@@ -90,10 +72,10 @@ def main():
     print(f"  normal {int((c_te == 0).sum())}, DGA {int((c_te == 1).sum())}, tunneling {int((c_te == 2).sum())}\n")
 
     f_te = [extract_features(d, "A") for d in d_te]
-    X_te = np.array([[f[k] for k in RF_FEATURES] for f in f_te])
+    X_te = features_from_domains(d_te)
 
-    rf = RandomForestClassifier(n_estimators=100, random_state=42).fit(X_tr, y_tr)
-    rf_pred = rf.predict(X_te)
+    rf = load_model(args.model) if args.model else train_model(features_from_domains(d_tr), y_tr)
+    rf_pred = predict(rf, X_te)
 
     best_t, best_f1 = 50, -1.0
     for t in range(10, 101, 2):
