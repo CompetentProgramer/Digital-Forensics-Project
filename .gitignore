@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+ML/saved_models/
+*.joblib
+*.pcap
+results.csv
