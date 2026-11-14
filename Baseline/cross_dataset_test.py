@@ -16,7 +16,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-sys.path.insert(0, os.path.join(HERE, "..", "ML"))
+sys.path.insert(0, os.path.join(HERE, "..", "ML"))  # teammate's train.py and data_loader.py
 
 import numpy as np  # noqa: E402
 
@@ -55,7 +55,8 @@ def main():
     ap.add_argument("--model", help="load this saved .joblib model instead of training (it must have been trained on --train)")
     ap.add_argument("--domain-col", default="domain")
     ap.add_argument("--class-col", default="class")
-    ap.add_argument("--out", default="cross_dataset_metrics.csv")
+    ap.add_argument("--out", default=os.path.join(HERE, "..", "Metrics", "cross_dataset_metrics.csv"),
+                    help="results CSV (default: ../Metrics/cross_dataset_metrics.csv)")
     args = ap.parse_args()
 
     d_tr, y_tr = load(args.train)
@@ -103,6 +104,7 @@ def main():
         print(f"{name:<52}{m['precision']:>7.3f}{m['recall']:>7.3f}{m['f1']:>7.3f}{m['fp']:>8}"
               f"{m['fn']:>6}{fpr:>9.2%}{dga_rate:>13.1%}")
 
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["system", "precision", "recall", "f1", "tp", "fp", "fn", "tn", "false_alarm_rate",

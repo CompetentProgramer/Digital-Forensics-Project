@@ -17,8 +17,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ML_DIR = os.path.join(HERE, "..", "ML")
-sys.path.insert(0, HERE)
-sys.path.insert(0, ML_DIR)
+sys.path.insert(0, HERE)    # dns_tunnel_detector lives next to this file
+sys.path.insert(0, ML_DIR)  # teammate's train.py and data_loader.py
 
 import matplotlib  # noqa: E402
 
@@ -32,6 +32,7 @@ from train import load_model, predict, train_model  # noqa: E402  (ML/)
 from dns_tunnel_detector import apply_rules, extract_features  # noqa: E402
 
 DATA_DIR = os.path.join(ML_DIR, "dataset")
+METRICS_DIR = os.path.join(HERE, "..", "Metrics")  # results land here by default
 
 
 class Thresholds:
@@ -69,8 +70,8 @@ def main():
     ap.add_argument("--train", default=os.path.join(DATA_DIR, "training.csv"))
     ap.add_argument("--valid", default=os.path.join(DATA_DIR, "validating.csv"))
     ap.add_argument("--model", help="load this saved .joblib model (e.g. ML/saved_models/random_forest_classifier.joblib) instead of training")
-    ap.add_argument("--out", default="comparison_metrics.csv")
-    ap.add_argument("--plot", default="comparison.png")
+    ap.add_argument("--out", default=os.path.join(METRICS_DIR, "comparison_metrics.csv"))
+    ap.add_argument("--plot", default=os.path.join(METRICS_DIR, "comparison.png"))
     args = ap.parse_args()
 
     d_tr, y_tr = load(args.train)
@@ -108,6 +109,7 @@ def main():
         print(f"{name:<50}{m['accuracy']:>7.4f}{m['precision']:>7.4f}{m['recall']:>7.4f}"
               f"{m['f1']:>7.4f}{m['fp']:>6}{m['fn']:>6}")
 
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["system", "accuracy", "precision", "recall", "f1", "tp", "fp", "fn", "tn"])
@@ -173,6 +175,7 @@ def main():
     for t in leg.get_texts():
         t.set_color(ink2)
     fig.tight_layout()
+    os.makedirs(os.path.dirname(os.path.abspath(args.plot)), exist_ok=True)
     fig.savefig(args.plot, dpi=160, facecolor=surface, bbox_inches="tight")
     plt.close(fig)
     print(f"Wrote {args.plot}")
