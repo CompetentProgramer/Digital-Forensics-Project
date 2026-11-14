@@ -8,7 +8,7 @@ def train_model(x_train, y_train):
     return model
 
 def save_model(model, model_path):
-    os.makedirs(model_path, exist_ok=True)
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)  # create the FOLDER, not a folder named like the file
     joblib.dump(model, model_path)  # For saving the Random Forest object
     print(f"Model saved to {model_path}")
 
