@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 compare_rf_vs_rules.py
-Head-to-head: the teammate's random forest (ML/) vs the base rule-based
+Head-to-head: the  random forest (ML/) vs the base rule-based
 detector (Baseline/dns_tunnel_detector.py), scored on the SAME held-out data.
 
 Run from anywhere:
@@ -18,7 +18,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ML_DIR = os.path.join(HERE, "..", "ML")
 sys.path.insert(0, HERE)    # dns_tunnel_detector lives next to this file
-sys.path.insert(0, ML_DIR)  # teammate's train.py and data_loader.py
+sys.path.insert(0, ML_DIR)  #  train.py and data_loader.py
 
 import matplotlib  # noqa: E402
 
@@ -81,7 +81,7 @@ def main():
     print(f"Train: {len(y_tr)} rows   Validation: {len(y_va)} rows "
           f"({int(y_va.sum())} tunneling, {int((1 - y_va).sum())} normal)\n")
 
-    # --- Random forest (teammate's setup) ---------------------------------
+    # --- Random forest ( setup) ---------------------------------
     X_va = features_from_domains(d_va)
     rf = load_model(args.model) if args.model else train_model(features_from_domains(d_tr), y_tr)
     rf_pred = predict(rf, X_va)
@@ -98,7 +98,7 @@ def main():
     tuned_pred = rule_predict(f_va, best_t)
 
     systems = [
-        ("Random forest (teammate's ML)", rf_pred),
+        ("Random forest ( ML)", rf_pred),
         ("Rule detector (default, cutoff 50)", rule_pred),
         (f"Rule detector (cutoff tuned on train: {best_t})", tuned_pred),
     ]

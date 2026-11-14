@@ -16,7 +16,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-sys.path.insert(0, os.path.join(HERE, "..", "ML"))  # teammate's train.py and data_loader.py
+sys.path.insert(0, os.path.join(HERE, "..", "ML"))  #  train.py and data_loader.py
 
 import numpy as np  # noqa: E402
 
