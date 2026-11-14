@@ -1,0 +1,4 @@
+system,precision,recall,f1,tp,fp,fn,tn,false_alarm_rate,dga_flagged_rate
+Random forest (trained on training_augmented.csv),0.7113,0.9275,0.8051,1446,587,113,229913,0.00255,0.0013
+"Rule detector (default, cutoff 50)",0.5684,0.5914,0.5797,922,700,637,229800,0.00304,0.0194
+Rule detector (cutoff tuned on Bubnov: 20),0.0615,1.0,0.1159,1559,23790,0,206710,0.10321,0.4198
