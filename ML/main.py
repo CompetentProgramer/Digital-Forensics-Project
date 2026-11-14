@@ -7,7 +7,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))  # paths work from any launch 
 save_dir = os.path.join(BASE, "saved_models")  # Folder where the model will be stored
 save_file = os.path.join(save_dir, "random_forest_classifier.joblib")
 training_file = os.path.join(BASE, "dataset", "training_augmented.csv")
-validation_file = os.path.join(BASE, "dataset", "training_augmented.csv")
+validation_file = os.path.join(BASE, "dataset", "validating.csv")
 
 def run_training():
     X_train, y_train = load_data(training_file)
