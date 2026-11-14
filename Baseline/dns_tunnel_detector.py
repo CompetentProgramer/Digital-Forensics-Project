@@ -6,7 +6,26 @@ import math
 import sys
 from collections import Counter, defaultdict
 
-from scapy.all import DNS, DNSQR, IP, IPv6, PcapReader, UDP, TCP  # noqa: F401
+from scapy.layers.dns import DNS, DNSQR
+from scapy.layers.inet import IP
+from scapy.layers.inet6 import IPv6
+from scapy.utils import PcapReader
+
+try:  # public-suffix aware splitting: pip install tldextract (uses its bundled list, no network)
+    import tldextract
+
+    _EXTRACT = tldextract.TLDExtract(suffix_list_urls=(), cache_dir=None)
+except Exception:  # package missing: fall back to a built-in list of common two-part suffixes
+    _EXTRACT = None
+
+# Fallback only (used when tldextract is not installed). Incomplete by design.
+TWO_PART_SUFFIXES = {
+    "co.uk", "org.uk", "ac.uk", "gov.uk", "me.uk", "com.au", "net.au", "org.au", "edu.au", "gov.au",
+    "co.nz", "co.jp", "ne.jp", "or.jp", "ac.jp", "com.br", "net.br", "org.br", "gov.br", "com.cn",
+    "net.cn", "org.cn", "com.tr", "com.tw", "com.mx", "com.ar", "co.in", "net.in", "co.za", "co.kr",
+    "or.kr", "com.ua", "com.pl", "com.es", "com.co", "com.sg", "com.hk", "com.my", "com.ph", "com.vn",
+    "com.pe", "com.ve", "com.eg", "com.sa", "com.pk", "co.id", "co.il", "co.th",
+}
 
 QTYPES = {1: "A", 2: "NS", 5: "CNAME", 10: "NULL", 15: "MX", 16: "TXT", 28: "AAAA", 255: "ANY"}
 SUSPICIOUS_QTYPES = {"TXT", "NULL"}  # commonly used by tunneling tools
@@ -22,12 +41,29 @@ def shannon_entropy(text: str) -> float:
 
 
 def split_domain(qname: str):
-    """Return (subdomain, registered_domain) using a simple last-two-labels
-    heuristic. Swap in `tldextract` for production."""
-    labels = qname.rstrip(".").lower().split(".")
-    if len(labels) <= 2:
+    """Return (subdomain, registered_domain).
+
+    The registered domain is the name a person or company actually bought: one
+    label plus the PUBLIC SUFFIX. The suffix is not always one label: for
+    careermums.com.au it is "com.au", so the registered domain is
+    careermums.com.au and there is NO subdomain. Taking the last two labels
+    ("com.au") would wrongly call "careermums" a subdomain.
+
+    Uses the public suffix list through tldextract when installed. If it is not
+    (or the name has an unknown ending such as .local), falls back to a
+    built-in list of common two-part suffixes, then to the last two labels."""
+    name = qname.rstrip(".").lower()
+    if _EXTRACT is not None:
+        ext = _EXTRACT(name)
+        if ext.suffix:  # a real public suffix was found
+            if not ext.domain:  # the name is itself a suffix (e.g. "co.uk")
+                return "", name
+            return ext.subdomain, f"{ext.domain}.{ext.suffix}"
+    labels = name.split(".")
+    keep = 3 if len(labels) >= 3 and ".".join(labels[-2:]) in TWO_PART_SUFFIXES else 2
+    if len(labels) <= keep:
         return "", ".".join(labels)
-    return ".".join(labels[:-2]), ".".join(labels[-2:])
+    return ".".join(labels[:-keep]), ".".join(labels[-keep:])
 
 
 def extract_features(qname: str, qtype: str) -> dict:
